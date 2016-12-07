@@ -1,0 +1,21 @@
+#pragma once
+#include <GLFW/glfw3.h>
+#include <cmath>
+#include <vector>
+#include <algorithm>
+#include <iostream>
+#include "Logging.hpp"
+
+typedef uint8_t u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
+typedef char i8;
+typedef int16_t i16;
+typedef int32_t i32;
+typedef int64_t i64;
+
+extern GLFWwindow *window;
+
+bool initWindow();
+void refresh();
