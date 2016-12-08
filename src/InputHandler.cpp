@@ -36,6 +36,10 @@ const std::map<std::string, int> stringToKey = {
     { "f11", GLFW_KEY_F11 },
     { "f12", GLFW_KEY_F12 },
     { "menu", GLFW_KEY_MENU },
+    { "shift", GLFW_MOD_SHIFT },
+    { "ctrl", GLFW_MOD_CONTROL },
+    { "alt", GLFW_MOD_ALT },
+    { "super", GLFW_MOD_SUPER },
 };
 
 
@@ -117,9 +121,33 @@ void InputHandler::execute(int k, int a, int m){
 }
 
 /// "ctrl-alt-spacebar: jump" jak to parsować?
-/// jak odróznić modyfikator od klawisza? kiedy ctrl jest modem a kiedy nie? gdy jest sam?
+/// "ctrl-alt--: jump" jak to parsować?
 void InputHandler::registerKeyCombination(const std::string &binding){
+    int a=0;
+    std::vector<std::string> values;
+    for(int i=0; i<binding.size(); i++){
+        char c = binding[i];
+        if(c == ':' and binding[i-1]=='-'){
+            values.push_back("-");
+            a=i+1;
+        }
+        else if(c == ':'){
+            a=i+1;
+        }
+        else if(c == '-'){
+            values.push_back(binding.substr(a, i-a));
+            a = i+1;
+        }
+    }
 
+    int mods = 0;
+    int key = 0;
+    for(int i=0; i<values.size()-1; i++){
+        mods |= stringToKey[values[i]];
+    }
+    key = stringToKey[values.back()];
+    auto function = s.substr(a);
+    defaultKeyBindings.emplace(function, make_pair(mods, key));
 }
 
 std::map<std::string, std::pair<int, int>> InputHandler::defaultKeyBindings;

@@ -6,18 +6,22 @@
 
 bool debug = true;
 bool running = true;
+int currentMods;
 
 void scrollCallback(GLFWwindow *window, double dx, double dy){
     if(debug) log(__FUNCTION__, "dx:", dx, "dy:", dy);
+    if(dy > 0) InputHandler::execute(S_UP, 0, currentMods);
+    if(dy < 0) InputHandler::execute(S_DOWN, 0, currentMods);
 }
 void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods){
     if(debug) log(__FUNCTION__, "key:", key, "action:", action, "mods:", mods);
-
+    currentMods = mods;
     InputHandler::execute(key, action, mods);
 }
 void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods){
     if(debug) log(__FUNCTION__, "button:", button, "action:", action, "mods:", mods);
 
+    currentMods = mods;
     InputHandler::execute(button, action, mods);
 }
 void exitCallback(GLFWwindow *window){
