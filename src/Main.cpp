@@ -51,24 +51,30 @@ int main(){
     glfwSetMouseButtonCallback(window, mouseButtonCallback);
     glfwSetWindowCloseCallback(window, exitCallback);
 
-    InputHandler::registerKeyCombination("esc: exit");
-    InputHandler::registerKeyCombination("alt-f4: exit"); /// multimap?
+    InputHandler::registerKeyCombination("esc:exit");
+    InputHandler::registerKeyCombination("alt-f4:exit");
+    InputHandler::registerKeyCombination("f1:help");
+    InputHandler::registerKeyCombination("hold-shift:stats");
 
-    inputHandler.emplace(GLFW_KEY_ESCAPE, GLFW_PRESS, 0, "Exit-Esc", []{
-        log("Exit");
-        running = false;
-    });
-    inputHandler.emplace(GLFW_KEY_F4, GLFW_PRESS, GLFW_MOD_ALT, "Exit-Alt-F4", []{
-        log("Exit");
-        running = false;
-    });
+    /**
+     *  Mamy konteksty, lepsze to niż trzymać lokalnie :D, łatwiej usunąć(wylatuje cały kontekst), poruszamy się tylko w jego obrębie,
+     *  Nie wiem tylko czy robić stos aktywnych kontekstów, z przechwytywaniem czy też tylko jeden aktywny, nwm
+     *
+     *  Akcję można przypisać do funkcji(:exit) albo do sktótu klawiszowego(alt-f3), mod klawiszy nie ma dla wciśnięć
+     *  Z defaultu akcja odpala się na wciśnięcie klawisza, można dodać też coś na puszczenie
+     *  Jeśli ma się dziać na przytrzymaniu to trzeba użyć "hold-shift:zoom", i trzeba pamiętać o szybsze3j aktywacji holda
+     *
+     *  W handlerze możemy zdefiniować defaultowe skróty klawiszowe, dla jakiejś funkcji przypisujemy dowolna liczbę skrótów
+     *  znając nazwę fcji można wyciągnąć przypisane jej klawisze
+     *
+     *  Klawisze są zdefiniowane na naciśnięcie bądź przytrymanie, puszczenie dodawane jest z defaultu
+     *  Parsowanie stringa zwraca trzy inty
+     */
 
-    inputHandler.emplace(GLFW_KEY_LEFT_ALT, GLFW_PRESS, GLFW_MOD_ALT, "GLFW_KEY_LEFT_ALT", []{
-        log("GLFW_KEY_LEFT_ALT pressed");
-    });
-    inputHandler.emplace('C', GLFW_PRESS, GLFW_MOD_ALT, "GLFW_MOD_ALT", []{
-        log("GLFW_MOD_ALT pressed");
-    });
+    InputHandlerContext context("Main");
+    context.setFunction("help", []{log("This is help");log("-------");});
+    context.setBinding("W", []{log("Start engine");}, []{log("Stop engine");});
+    context.setBinding("hold-tab", []{std::cout<<".";});
 
     loop();
 

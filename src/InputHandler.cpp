@@ -3,6 +3,12 @@
 static bool debug = true;
 static bool running = true;
 
+const std::map<std::string, int> stringToMod = {
+    { "shift", GLFW_MOD_SHIFT },
+    { "ctrl", GLFW_MOD_CONTROL },
+    { "alt", GLFW_MOD_ALT },
+    { "super", GLFW_MOD_SUPER },
+}
 const std::map<std::string, int> stringToKey = {
     { "space", GLFW_KEY_SPACE },
     { "esc", GLFW_KEY_ESCAPE },
@@ -40,6 +46,7 @@ const std::map<std::string, int> stringToKey = {
     { "ctrl", GLFW_MOD_CONTROL },
     { "alt", GLFW_MOD_ALT },
     { "super", GLFW_MOD_SUPER },
+    { "hold", HOLD_KEY},
 };
 
 
@@ -64,6 +71,33 @@ inline u32 hashInput(int k, int a, int m){
     // std::cout<<std::hex << "composed: " << composed << ", k: " << k << ", a: " << a << ", m: " << m << std::endl;
     /// m is 4bits, a is 2bits, k is at least 9bits
     return u32( k<<6 | a <<4 | m );
+}
+
+std::pair<std::string, std::string> splitKeyBinding(){
+    return "";
+}
+struct KeyActionMode
+{
+    int key;
+    int action;
+    int mode;
+};
+KeyActionMode parseKeyBinding(const std::string &str){
+    KeyActionMode out {};
+    std::vector<std::string> values; = splitString(str);
+
+    if(values.front() == "hold"){
+        out.action = GLFW_REPEAT;
+        values.pop_front();
+    }
+    else out.action = GLFW_PRESS;
+
+    for(int i=0; i<values.size()-1; i++){
+        mods |= stringToMod[values[i]];
+    }
+    key = stringToKey[values.back()];
+
+    return out;
 }
 
 InputHandler::~InputHandler(){
@@ -150,6 +184,36 @@ void InputHandler::registerKeyCombination(const std::string &binding){
     defaultKeyBindings.emplace(function, make_pair(mods, key));
 }
 
-std::map<std::string, std::pair<int, int>> InputHandler::defaultKeyBindings;
-std::multimap<u32, InputHandler::Event> InputHandler::keysToOperator;
 
+std::map<std::string, std::string> InputHandler::functionAndKeyBindings;
+std::map<std::string, std::map<u32, Event>> InputHandler::contextAndEvents;
+
+bool InputHandler::registerNewContext(const std::string &contextName){
+    if(contextAndEvents.count(contextName)) return false;
+    contextAndEvents.emplace(contextAndEvents, {});
+}
+void InputHandler::deleteContext(const std::string &contextName){
+    contextAndEvents.erase(contextName);
+}
+
+void InputHandler::forEachBinding(const std::string &function, std::function<void(const std::string&)> fun){
+    auto keys = functionAndKeyBindings.equal_range(function);
+    for (auto it = keys.first; it != keys.second; ++it)
+        fun(it);
+}
+
+void setFunction(const std::string &function, Lambda onEnter, Lambda onExit){
+    InputHandler::forEachBinding(function, [](const std::string &fun){
+        setBinding(fun, onEnter, onExit);
+    });
+}
+void setBinding(const std::string &binding, Lambda onEnter, Lambda onExit){
+    auto keys = parseKeyBinding(binding);
+    if(onEnter){
+
+    }
+    keys.action = GLFW_RELEASE;
+    if(onExit){
+
+    }
+}

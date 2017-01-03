@@ -9,10 +9,14 @@ const int MMB = 502;
 const int RMB = 503;
 const int S_UP = 504;
 const int S_DOWN = 505;
+const int HOLD_KEY = 666;
 
+u32 hashKeys(int, int, int);
+
+
+using Lambda = std::function<void(void)>;
 class InputHandler
 {
-    using Lambda = std::function<void(void)>;
     struct Event
     {
         std::string name;
@@ -25,6 +29,11 @@ public:
     InputHandler(){}
     ~InputHandler();
 
+    bool registerNewContext(const std::string &contextName);
+    void deleteContext(const std::string &contextName);
+
+    void forEachBinding(const std::string &function, std::function<void(const std::string&)>fun);
+
     void emplaceFromDefault(const std::string &functionName, Lambda func);
     void emplaceFromDefault(const std::string &functionName, int action, Lambda func);
     void emplaceFromDefault(const std::string &functionName, int action, const std::string &internalName, Lambda func);
@@ -36,7 +45,22 @@ public:
     /// "ctrl-alt-spacebar: jump" jak to parsować?
     static void registerKeyCombination(const std::string &binding);
 private:
-    static std::multimap<u32, Event> keysToOperator;
-    static std::map<std::string, std::pair<int, int>> defaultKeyBindings; /// zrobić to multimapą
-    std::map<std::string, std::multimap<u32, Event>::iterator> iterators;
+    static std::multimap<std::string, std::string> functionAndKeyBindings;
+    static std::map<std::string, std::map<u32, Event>> contextAndEvents;
+};
+
+class InputHandlerContext
+{
+public:
+    InputHandlerContext(std::string contextName) : contextName(contextName){
+        InputHandler::registerNewContext(contextName);
+    }
+    ~InputHandlerContext(){
+        InputHandler::deleteContext(contextName);
+    }
+    void setFunction(const std::string &function, Lambda onEnter, Lambda onExit={});
+    void setBinding(const std::string &function, Lambda onEnter, Lambda onExit={});
+
+private:
+    std::string contextName;
 };
