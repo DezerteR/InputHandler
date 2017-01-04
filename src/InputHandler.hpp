@@ -1,6 +1,6 @@
 #pragma once
 #include <map>
-#include <tuple>
+#include <deque>
 #include "Utils.hpp"
 #include "Timer.hpp"
 
@@ -13,40 +13,35 @@ const int HOLD_KEY = 666;
 
 u32 hashKeys(int, int, int);
 
-
 using Lambda = std::function<void(void)>;
+
+struct InputEvent
+{
+    std::string name;
+    std::function<void(void)> func;
+    void operator () (){
+        if(func) func();
+    }
+};
+
+class InputHandlerContextBindingContainer;
+
 class InputHandler
 {
-    struct Event
-    {
-        std::string name;
-        std::function<void(void)> func;
-        void operator () (){
-            if(func) func();
-        }
-    };
 public:
-    InputHandler(){}
-    ~InputHandler();
-
-    bool registerNewContext(const std::string &contextName);
-    void deleteContext(const std::string &contextName);
-
-    void forEachBinding(const std::string &function, std::function<void(const std::string&)>fun);
-
-    void emplaceFromDefault(const std::string &functionName, Lambda func);
-    void emplaceFromDefault(const std::string &functionName, int action, Lambda func);
-    void emplaceFromDefault(const std::string &functionName, int action, const std::string &internalName, Lambda func);
-    void emplaceFromDefault(const std::string &functionName, const std::string &internalName, Lambda func);
-
-    void emplace(int k, int a, int m, const std::string &internalName, Lambda func);
-    void erase(const std::string &internalName);
+    static bool registerNewContext(const std::string &contextName);
+    static void deleteContext(const std::string &contextName);
+    static InputHandlerContextBindingContainer& getContext(const std::string &contextName);
     static void execute(int k, int a, int m);
-    /// "ctrl-alt-spacebar: jump" jak to parsować?
+
+    static void forEachBinding(const std::string &function, std::function<void(const std::string&)>fun);
     static void registerKeyCombination(const std::string &binding);
+    static void activate(const std::string &contextName);
+    static void deactivate(const std::string &contextName);
 private:
     static std::multimap<std::string, std::string> functionAndKeyBindings;
-    static std::map<std::string, std::map<u32, Event>> contextAndEvents;
+    static std::map<std::string, InputHandlerContextBindingContainer> contexts;
+    static std::deque<std::reference_wrapper<InputHandlerContextBindingContainer>> stackOfContext;
 };
 
 class InputHandlerContext
@@ -56,11 +51,13 @@ public:
         InputHandler::registerNewContext(contextName);
     }
     ~InputHandlerContext(){
+        deactivate();
         InputHandler::deleteContext(contextName);
     }
     void setFunction(const std::string &function, Lambda onEnter, Lambda onExit={});
-    void setBinding(const std::string &function, Lambda onEnter, Lambda onExit={});
-
+    void setBinding(const std::string &function, const std::string &name, Lambda onEnter, Lambda onExit={});
+    void activate();
+    void deactivate();
 private:
     std::string contextName;
 };

@@ -73,8 +73,8 @@ int main(){
 
     InputHandlerContext context("Main");
     context.setFunction("help", []{log("This is help");log("-------");});
-    context.setBinding("W", []{log("Start engine");}, []{log("Stop engine");});
-    context.setBinding("hold-tab", []{std::cout<<".";});
+    context.setBinding("W", "forward", []{log("Start engine");}, []{log("Stop engine");});
+    context.setBinding("hold-tab", "statisctics", []{std::cout<<".";});
 
     loop();
 
