@@ -3,6 +3,8 @@
 static bool debug = true;
 static bool running = true;
 
+namespace InputHandler {
+
 const std::map<std::string, int> stringToMod = {
     { "shift", GLFW_MOD_SHIFT },
     { "ctrl", GLFW_MOD_CONTROL },
@@ -141,6 +143,15 @@ inline u32 hashInput(KeyActionMode keys){
     return hashInput(keys.key, keys.action, keys.modifier);
 }
 
+struct InputEvent
+{
+    std::string name;
+    std::function<void(void)> func;
+    void operator () (){
+        if(func) func();
+    }
+};
+
 class InputHandlerContextBindingContainer
 {
 public:
@@ -178,49 +189,56 @@ private:
     std::map<u32, InputEvent> map;
 };
 
-std::multimap<std::string, std::string> InputHandler::functionAndKeyBindings;
-std::deque<std::reference_wrapper<InputHandlerContextBindingContainer>> InputHandler::stackOfContext;
-std::map<std::string, InputHandlerContextBindingContainer> InputHandler::contexts;
+std::deque<std::reference_wrapper<InputHandlerContextBindingContainer>> stackOfContext;
+std::multimap<std::string, std::string> functionAndKeyBindings;
+std::map<std::string, InputHandlerContextBindingContainer> contexts;
 
-bool InputHandler::registerNewContext(const std::string &contextName){
+bool registerNewContext(const std::string &contextName){
     if(contexts.count(contextName)) return false;
     contexts.emplace(contextName, InputHandlerContextBindingContainer(contextName));
     return true;
 }
-void InputHandler::deleteContext(const std::string &contextName){
+void deleteContext(const std::string &contextName){
     contexts.erase(contextName);
 }
-InputHandlerContextBindingContainer& InputHandler::getContext(const std::string &contextName){
+InputHandlerContextBindingContainer& getContext(const std::string &contextName){
     return contexts.at(contextName);
 }
-void InputHandler::forEachBinding(const std::string &functionName, std::function<void(const std::string&)> fun){
+void forEachBinding(const std::string &functionName, std::function<void(const std::string&)> fun){
     auto keys = functionAndKeyBindings.equal_range(functionName);
     for (auto it = keys.first; it != keys.second; ++it)
         fun(it->second);
 }
-void InputHandler::registerKeyCombination(const std::string &str){
+void registerKeyCombination(const std::string &str){
     auto funcAndKeys = splitToFunctionAndKeys(str);
     functionAndKeyBindings.emplace(funcAndKeys.first, funcAndKeys.second);
 }
-void InputHandler::activate(const std::string &contextName){
+void activate(const std::string &contextName){
     stackOfContext.push_front(contexts.at(contextName));
 }
-void InputHandler::deactivate(const std::string &contextName){
+void deactivate(const std::string &contextName){
     for(auto it = stackOfContext.begin(); it != stackOfContext.end(); it++)
         if(it->get().name == contextName) stackOfContext.erase(it);
 }
 
-void InputHandler::execute(int k, int a, int m){
+void execute(int k, int a, int m){
     for(auto it = stackOfContext.begin(); it != stackOfContext.end(); it++)
         if(it->get().execute(k, a, m)) break;
 }
 
-void InputHandlerContext::setFunction(const std::string &functionName, Lambda onEnter, Lambda onExit){
+Context::Context(std::string contextName) : contextName(contextName){
+    InputHandler::registerNewContext(contextName);
+}
+Context::~Context(){
+    deactivate();
+    InputHandler::deleteContext(contextName);
+}
+void Context::setFunction(const std::string &functionName, Lambda onEnter, Lambda onExit){
     InputHandler::forEachBinding(functionName, [&](const std::string &binding){
         setBinding(binding, functionName, onEnter, onExit);
     });
 }
-void InputHandlerContext::setBinding(const std::string &binding, const std::string &name, Lambda onEnter, Lambda onExit){
+void Context::setBinding(const std::string &binding, const std::string &name, Lambda onEnter, Lambda onExit){
     auto keys = parseKeyBinding(binding);
     if(onEnter){
         InputHandler::getContext(contextName).emplace(keys.key, keys.action, keys.modifier, name, onEnter);
@@ -231,9 +249,11 @@ void InputHandlerContext::setBinding(const std::string &binding, const std::stri
     }
 }
 
-void InputHandlerContext::activate(){
+void Context::activate(){
     InputHandler::activate(contextName);
 }
-void InputHandlerContext::deactivate(){
+void Context::deactivate(){
     InputHandler::deactivate(contextName);
+}
+
 }

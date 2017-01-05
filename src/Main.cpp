@@ -44,7 +44,6 @@ void loop(){
 
 int main(){
     initWindow();
-    InputHandler inputHandler;
 
     glfwSetScrollCallback(window, scrollCallback);
     glfwSetKeyCallback(window, keyCallback);
@@ -73,15 +72,13 @@ int main(){
      *  Klawisze są zdefiniowane na naciśnięcie bądź przytrymanie, puszczenie dodawane jest z defaultu
      *  Parsowanie stringa zwraca trzy inty
      *
-     *  Jest jescze jeden problem: jak mamy zdefiniowany hold na shiftcie i odpalimy jakiś skrót z shiftem(shift-c) to hold będzie pierwszy
-     *  jeśli mamy hold-shift to key i mod będą shiftem
-     *  jesli shift-c to key:c mod:shift
      */
-    InputHandlerContext context("Main");
+    InputHandler::Context context("Main");
     context.setFunction("setOrigin", []{log("setOrigin");});
     context.setFunction("help", []{log("This is help");log("-------");});
     context.setFunction("stats", []{log("Score: 12300");});
     context.setBinding("W", "forward", []{log("Start engine");}, []{log("Stop engine");});
+    context.setBinding("hold-W", "forward", []{log("brum-brum");});
     context.setFunction("exit", []{std::cout<<"bye :D"; running = false;});
     context.activate();
     loop();
