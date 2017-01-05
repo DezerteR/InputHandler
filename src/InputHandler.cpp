@@ -23,13 +23,13 @@ const std::map<std::string, int> stringToKey = {
     { "left", GLFW_KEY_LEFT },
     { "down", GLFW_KEY_DOWN },
     { "up", GLFW_KEY_UP },
-    { "page_up", GLFW_KEY_PAGE_UP },
-    { "page_down", GLFW_KEY_PAGE_DOWN },
+    { "pageUp", GLFW_KEY_PAGE_UP },
+    { "pageDown", GLFW_KEY_PAGE_DOWN },
     { "home", GLFW_KEY_HOME },
     { "end", GLFW_KEY_END },
-    { "caps_lock", GLFW_KEY_CAPS_LOCK },
-    { "scroll_lock", GLFW_KEY_SCROLL_LOCK },
-    { "print_screen", GLFW_KEY_PRINT_SCREEN },
+    { "capsLock", GLFW_KEY_CAPS_LOCK },
+    { "scrollLock", GLFW_KEY_SCROLL_LOCK },
+    { "printScreen", GLFW_KEY_PRINT_SCREEN },
     { "pause", GLFW_KEY_PAUSE },
     { "f1", GLFW_KEY_F1 },
     { "f2", GLFW_KEY_F2 },
@@ -49,11 +49,17 @@ const std::map<std::string, int> stringToKey = {
     { "alt", GLFW_KEY_LEFT_ALT },
     { "super", GLFW_KEY_LEFT_SUPER },
     { "hold", HOLD_KEY},
+    { "scrollUp", SCROLL_UP},
+    { "scrollDown", SCROLL_DOWN},
+    { "LMB", LMB},
+    { "MMB", MMB},
+    { "RMB", RMB},
     { "minus", int('-')},
 };
 
 /// keys:function
 std::pair<std::string, std::string> splitToFunctionAndKeys(const std::string &str){
+    // str.erase( remove(str.begin(), str.end(),' '), str.end() );
     int a=0;
     for(int i=0; i<str.size(); i++){
         if(str[i] == ':'){
@@ -86,7 +92,8 @@ struct KeyActionMode
 KeyActionMode parseKeyBinding(const std::string &str){
     KeyActionMode out {};
     std::vector<std::string> values = splitToKeys(str);
-
+    // log(str);
+    // for(auto &it : values) log("\t", it);
     if(values.front() == "hold"){
         out.action = GLFW_REPEAT;
         values = std::vector<std::string>(values.begin()+1, values.end());
@@ -103,18 +110,18 @@ KeyActionMode parseKeyBinding(const std::string &str){
     }
     if(stringToKey.count(values.back()))
         out.key = stringToKey.at(values.back());
-    else
+    else {
         out.key = int(values.back()[0]);
+        // log("[Warning] unknown key value:", values.back());
+    }
     if(out.key >= 'a' and out.key <= 'z') out.key -= 'a' - 'A';
+    // log("\t", out.key);
     return out;
 }
 
 inline u32 hashInput(int k, int a, int m){
     if(k > 256){
         switch(k){
-            case GLFW_MOUSE_BUTTON_LEFT: { k = LMB; break; }
-            case GLFW_MOUSE_BUTTON_RIGHT: { k = RMB; break; }
-            case GLFW_MOUSE_BUTTON_MIDDLE: { k = MMB; break; }
             case GLFW_KEY_KP_ENTER: { k = GLFW_KEY_ENTER ; break; }
             case GLFW_KEY_KP_DIVIDE : { k = '/'; break; }
             case GLFW_KEY_KP_MULTIPLY: { k = '*'; break; }
@@ -129,7 +136,7 @@ inline u32 hashInput(int k, int a, int m){
                 if(k >= GLFW_KEY_KP_0 and k <= GLFW_KEY_KP_9) k -= GLFW_KEY_KP_0 + '0';
             }
         }
-        /// in case we want only shit pressed and behave as key not mod
+        /// in case we want only shift pressed and behave as key not mod
         if(k == GLFW_KEY_LEFT_SHIFT and m & GLFW_MOD_SHIFT) m = 0;
         if(k == GLFW_KEY_LEFT_CONTROL and m & GLFW_MOD_CONTROL) m = 0;
         if(k == GLFW_KEY_LEFT_ALT and m & GLFW_MOD_ALT) m = 0;
@@ -159,7 +166,7 @@ public:
     void emplace(int k, int a, int m, const std::string &internalName, Lambda func){
         auto hashed = hashInput(k, a, m);
         if(map.count(hashed)){
-            error(internalName, "is already defined in this handler");
+            error(internalName, "is already defined in this handler:", k,a,m);
             return;
         }
         map.emplace(hashed, InputEvent{internalName, func});
@@ -177,6 +184,7 @@ public:
         map.erase(hashInput(keys));
     }
     bool execute(int k, int a, int m){
+        // log(k,a,m);
         auto it = map.find(hashInput(k,a,m));
         if(it != map.end()){
             it->second();
@@ -226,7 +234,7 @@ void execute(int k, int a, int m){
         if(it->get().execute(k, a, m)) break;
 }
 
-Context::Context(std::string contextName) : contextName(contextName){
+Context::Context(std::string contextName, ConsumeInput consumeInput) : contextName(contextName), consumeInput(consumeInput){
     InputHandler::registerNewContext(contextName);
 }
 Context::~Context(){
@@ -241,6 +249,7 @@ void Context::setFunction(const std::string &functionName, Lambda onEnter, Lambd
 void Context::setBinding(const std::string &binding, const std::string &name, Lambda onEnter, Lambda onExit){
     auto keys = parseKeyBinding(binding);
     if(onEnter){
+        // log(binding, keys.key, keys.action, keys.modifier);
         InputHandler::getContext(contextName).emplace(keys.key, keys.action, keys.modifier, name, onEnter);
     }
     keys.action = GLFW_RELEASE;

@@ -9,9 +9,9 @@ bool running = true;
 int currentMods;
 
 void scrollCallback(GLFWwindow *window, double dx, double dy){
-    if(debug) log(__FUNCTION__, "dx:", dx, "dy:", dy);
-    if(dy > 0) InputHandler::execute(S_UP, 0, currentMods);
-    if(dy < 0) InputHandler::execute(S_DOWN, 0, currentMods);
+    // if(debug) log(__FUNCTION__, "dx:", dx, "dy:", dy);
+    if(dy > 0) InputHandler::execute(SCROLL_UP, GLFW_PRESS, currentMods);
+    if(dy < 0) InputHandler::execute(SCROLL_DOWN, GLFW_PRESS, currentMods);
 }
 void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods){
     // if(debug) log(__FUNCTION__, "key:", key, "action:", action, "mods:", mods);
@@ -19,9 +19,14 @@ void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods
     InputHandler::execute(key, action, mods);
 }
 void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods){
-    if(debug) log(__FUNCTION__, "button:", button, "action:", action, "mods:", mods);
+    // if(debug) log(__FUNCTION__, "button:", button, "action:", action, "mods:", mods);
 
     currentMods = mods;
+    switch(button){
+        case GLFW_MOUSE_BUTTON_LEFT: { button = LMB; break; }
+        case GLFW_MOUSE_BUTTON_RIGHT: { button = RMB; break; }
+        case GLFW_MOUSE_BUTTON_MIDDLE: { button = MMB; break; }
+    }
     InputHandler::execute(button, action, mods);
 }
 void exitCallback(GLFWwindow *window){
@@ -80,7 +85,18 @@ int main(){
     context.setBinding("W", "forward", []{log("Start engine");}, []{log("Stop engine");});
     context.setBinding("hold-W", "forward", []{log("brum-brum");});
     context.setFunction("exit", []{std::cout<<"bye :D"; running = false;});
+    // context.emplacePressRepeatRelease("shift-c", []{}, []{}, []{});
     context.activate();
+
+    std::string tab[4] = {"aa", "bb", "cc", "dd"};
+    int it=0;
+
+    InputHandler::Context tankC("Tank");
+    tankC.setBinding("scrollUp", "1", [&it]{ it = (it+1)%4; });
+    tankC.setBinding("scrollDown", "2", [&it]{ it = (it-1)%4;if(it<0) it=4+it; });
+    tankC.setBinding("LMB", "fire",  [&it, &tab]{ log(tab[it]); });
+    tankC.activate();
+
     loop();
     context.deactivate();
 
