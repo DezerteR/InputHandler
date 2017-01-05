@@ -40,8 +40,8 @@ public:
     static void deactivate(const std::string &contextName);
 private:
     static std::multimap<std::string, std::string> functionAndKeyBindings;
-    static std::map<std::string, InputHandlerContextBindingContainer> contexts;
     static std::deque<std::reference_wrapper<InputHandlerContextBindingContainer>> stackOfContext;
+    static std::map<std::string, InputHandlerContextBindingContainer> contexts;
 };
 
 class InputHandlerContext

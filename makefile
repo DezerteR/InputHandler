@@ -1,9 +1,10 @@
 DIRECTORIES = $(addprefix -I./,$(shell ls -d ./src/*/))
-TARGET_NAME = PMK_LowPoly
+TARGET_NAME = InputHandler
 
 CXX_FLAGS = -isystem C:\MinGW\include -std=c++14 -O2 -msse2 -mfpmath=sse -g -pipe -I. -I./src $(DIRECTORIES)
 ADDITIONAL_FLAGS = \
 -Werror=return-type
+# -Wshadow
 
 CXX = C:\MinGw\bin\g++.exe
 FFMPEG = C:\ffmpeg\bin\ffmpeg.exe

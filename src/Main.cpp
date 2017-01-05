@@ -14,7 +14,7 @@ void scrollCallback(GLFWwindow *window, double dx, double dy){
     if(dy < 0) InputHandler::execute(S_DOWN, 0, currentMods);
 }
 void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods){
-    if(debug) log(__FUNCTION__, "key:", key, "action:", action, "mods:", mods);
+    // if(debug) log(__FUNCTION__, "key:", key, "action:", action, "mods:", mods);
     currentMods = mods;
     InputHandler::execute(key, action, mods);
 }
@@ -53,8 +53,11 @@ int main(){
 
     InputHandler::registerKeyCombination("esc:exit");
     InputHandler::registerKeyCombination("alt-f4:exit");
+    InputHandler::registerKeyCombination("f4:exit");
     InputHandler::registerKeyCombination("f1:help");
     InputHandler::registerKeyCombination("hold-shift:stats");
+    InputHandler::registerKeyCombination("shift-c:setOrigin");
+    InputHandler::registerKeyCombination("ctrl-c:setOrigin");
 
     /**
      *  Mamy konteksty, lepsze to niż trzymać lokalnie :D, łatwiej usunąć(wylatuje cały kontekst), poruszamy się tylko w jego obrębie,
@@ -69,14 +72,20 @@ int main(){
      *
      *  Klawisze są zdefiniowane na naciśnięcie bądź przytrymanie, puszczenie dodawane jest z defaultu
      *  Parsowanie stringa zwraca trzy inty
+     *
+     *  Jest jescze jeden problem: jak mamy zdefiniowany hold na shiftcie i odpalimy jakiś skrót z shiftem(shift-c) to hold będzie pierwszy
+     *  jeśli mamy hold-shift to key i mod będą shiftem
+     *  jesli shift-c to key:c mod:shift
      */
-
     InputHandlerContext context("Main");
+    context.setFunction("setOrigin", []{log("setOrigin");});
     context.setFunction("help", []{log("This is help");log("-------");});
+    context.setFunction("stats", []{log("Score: 12300");});
     context.setBinding("W", "forward", []{log("Start engine");}, []{log("Stop engine");});
-    context.setBinding("hold-tab", "statisctics", []{std::cout<<".";});
-
+    context.setFunction("exit", []{std::cout<<"bye :D"; running = false;});
+    context.activate();
     loop();
+    context.deactivate();
 
     return 0;
 }

@@ -42,10 +42,10 @@ const std::map<std::string, int> stringToKey = {
     { "f11", GLFW_KEY_F11 },
     { "f12", GLFW_KEY_F12 },
     { "menu", GLFW_KEY_MENU },
-    { "shift", GLFW_MOD_SHIFT },
-    { "ctrl", GLFW_MOD_CONTROL },
-    { "alt", GLFW_MOD_ALT },
-    { "super", GLFW_MOD_SUPER },
+    { "shift", GLFW_KEY_LEFT_SHIFT },
+    { "ctrl", GLFW_KEY_LEFT_CONTROL },
+    { "alt", GLFW_KEY_LEFT_ALT },
+    { "super", GLFW_KEY_LEFT_SUPER },
     { "hold", HOLD_KEY},
     { "minus", int('-')},
 };
@@ -55,7 +55,7 @@ std::pair<std::string, std::string> splitToFunctionAndKeys(const std::string &st
     int a=0;
     for(int i=0; i<str.size(); i++){
         if(str[i] == ':'){
-            return std::make_pair(str.substr(0, i-1), str.substr(i+1));
+            return std::make_pair(str.substr(i+1), str.substr(0, i));
         }
     }
     return {};
@@ -72,6 +72,7 @@ std::vector<std::string> splitToKeys(std::string str){
             a = i+1;
         }
     }
+    values.push_back(str.substr(a));
     return values;
 }
 struct KeyActionMode
@@ -82,7 +83,7 @@ struct KeyActionMode
 };
 KeyActionMode parseKeyBinding(const std::string &str){
     KeyActionMode out {};
-    std::vector<std::string> values;/// = splitString(str);
+    std::vector<std::string> values = splitToKeys(str);
 
     if(values.front() == "hold"){
         out.action = GLFW_REPEAT;
@@ -91,8 +92,9 @@ KeyActionMode parseKeyBinding(const std::string &str){
     else out.action = GLFW_PRESS;
 
     for(int i=0; i<values.size()-1; i++){
-        if(stringToMod.count(values[i]))
+        if(stringToMod.count(values[i])){
             out.modifier |= stringToMod.at(values[i]);
+        }
         else {
             error("No modifier key:", values[i]);
         }
@@ -101,7 +103,7 @@ KeyActionMode parseKeyBinding(const std::string &str){
         out.key = stringToKey.at(values.back());
     else
         out.key = int(values.back()[0]);
-
+    if(out.key >= 'a' and out.key <= 'z') out.key -= 'a' - 'A';
     return out;
 }
 
@@ -116,11 +118,20 @@ inline u32 hashInput(int k, int a, int m){
             case GLFW_KEY_KP_MULTIPLY: { k = '*'; break; }
             case GLFW_KEY_KP_SUBTRACT : { k = '-'; break; }
             case GLFW_KEY_KP_ADD : { k = '+'; break; }
-            case GLFW_KEY_KP_EQUAL  : { k = '='; break; }
+            case GLFW_KEY_KP_EQUAL : { k = '='; break; }
+            case GLFW_KEY_RIGHT_SHIFT : { k = GLFW_KEY_LEFT_SHIFT; break; }
+            case GLFW_KEY_RIGHT_CONTROL : { k = GLFW_KEY_LEFT_CONTROL; break; }
+            case GLFW_KEY_RIGHT_ALT : { k = GLFW_KEY_LEFT_ALT; break; }
+            case GLFW_KEY_RIGHT_SUPER : { k = GLFW_KEY_LEFT_SUPER; break; }
             default:{
                 if(k >= GLFW_KEY_KP_0 and k <= GLFW_KEY_KP_9) k -= GLFW_KEY_KP_0 + '0';
             }
         }
+        /// in case we want only shit pressed and behave as key not mod
+        if(k == GLFW_KEY_LEFT_SHIFT and m & GLFW_MOD_SHIFT) m = 0;
+        if(k == GLFW_KEY_LEFT_CONTROL and m & GLFW_MOD_CONTROL) m = 0;
+        if(k == GLFW_KEY_LEFT_ALT and m & GLFW_MOD_ALT) m = 0;
+        if(k == GLFW_KEY_LEFT_SUPER and m & GLFW_MOD_SUPER) m = 0;
     }
 
     /// m is 4bits, a is 2bits, k is at least 9bits
@@ -168,8 +179,8 @@ private:
 };
 
 std::multimap<std::string, std::string> InputHandler::functionAndKeyBindings;
-std::map<std::string, InputHandlerContextBindingContainer> InputHandler::contexts;
 std::deque<std::reference_wrapper<InputHandlerContextBindingContainer>> InputHandler::stackOfContext;
+std::map<std::string, InputHandlerContextBindingContainer> InputHandler::contexts;
 
 bool InputHandler::registerNewContext(const std::string &contextName){
     if(contexts.count(contextName)) return false;
@@ -182,8 +193,8 @@ void InputHandler::deleteContext(const std::string &contextName){
 InputHandlerContextBindingContainer& InputHandler::getContext(const std::string &contextName){
     return contexts.at(contextName);
 }
-void InputHandler::forEachBinding(const std::string &function, std::function<void(const std::string&)> fun){
-    auto keys = functionAndKeyBindings.equal_range(function);
+void InputHandler::forEachBinding(const std::string &functionName, std::function<void(const std::string&)> fun){
+    auto keys = functionAndKeyBindings.equal_range(functionName);
     for (auto it = keys.first; it != keys.second; ++it)
         fun(it->second);
 }
@@ -204,9 +215,9 @@ void InputHandler::execute(int k, int a, int m){
         if(it->get().execute(k, a, m)) break;
 }
 
-void InputHandlerContext::setFunction(const std::string &function, Lambda onEnter, Lambda onExit){
-    InputHandler::forEachBinding(function, [&](const std::string &fun){
-        setBinding(fun, function, onEnter, onExit);
+void InputHandlerContext::setFunction(const std::string &functionName, Lambda onEnter, Lambda onExit){
+    InputHandler::forEachBinding(functionName, [&](const std::string &binding){
+        setBinding(binding, functionName, onEnter, onExit);
     });
 }
 void InputHandlerContext::setBinding(const std::string &binding, const std::string &name, Lambda onEnter, Lambda onExit){
