@@ -5,18 +5,10 @@
 #include "Utils.hpp"
 #include "Timer.hpp"
 
-using Lambda = std::function<void(void)>;
-
-const int LMB = 501;
-const int MMB = 502;
-const int RMB = 503;
-const int SCROLL_UP = 504;
-const int SCROLL_DOWN = 505;
-const int HOLD_KEY = 666;
-
 namespace InputHandler
 {
 class InputHandlerContextBindingContainer;
+using Lambda = std::function<void(void)>;
 
 enum ConsumeInput
 {
@@ -25,6 +17,9 @@ enum ConsumeInput
     PASS_ALL
 };
 
+void scrollCallback(double dx, double dy);
+void keyCallback(int key, int action, int mods);
+void mouseButtonCallback(int button, int action, int mods);
 void execute(int k, int a, int m);
 void registerKeyCombination(const std::string &str);
 
@@ -33,13 +28,13 @@ class Context
 public:
     Context(std::string contextName, ConsumeInput consumeInput = DEFAULT);
     ~Context();
-    void setFunction(const std::string &function, Lambda onEnter, Lambda onExit={});
+    void setBinding(const std::string &function, Lambda onEnter, Lambda onExit={});
     void setBinding(const std::string &function, const std::string &name, Lambda onEnter, Lambda onExit={});
+    void execute(int k, int a, int m);
     void activate();
     void deactivate();
-private:
     std::string contextName;
-    std::shared_ptr<InputHandlerContextBindingContainer> contextPtr;
+    std::shared_ptr<InputHandlerContextBindingContainer> contextImpl;
     ConsumeInput consumeInput;
 };
 

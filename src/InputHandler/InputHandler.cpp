@@ -1,9 +1,19 @@
 #include "InputHandler.hpp"
+#include "Logging.hpp"
 
 static bool debug = true;
 static bool running = true;
 
 namespace InputHandler {
+
+const int LMB = 501;
+const int MMB = 502;
+const int RMB = 503;
+const int SCROLL_UP = 504;
+const int SCROLL_DOWN = 505;
+const int HOLD_KEY = 666;
+int currentMods;
+
 
 const std::map<std::string, int> stringToMod = {
     { "shift", GLFW_MOD_SHIFT },
@@ -11,6 +21,7 @@ const std::map<std::string, int> stringToMod = {
     { "alt", GLFW_MOD_ALT },
     { "super", GLFW_MOD_SUPER },
 };
+
 const std::map<std::string, int> stringToKey = {
     { "space", GLFW_KEY_SPACE },
     { "esc", GLFW_KEY_ESCAPE },
@@ -149,13 +160,36 @@ inline u32 hashInput(int k, int a, int m){
 inline u32 hashInput(KeyActionMode keys){
     return hashInput(keys.key, keys.action, keys.modifier);
 }
+void scrollCallback(double dx, double dy){
+    // if(debug) log(__FUNCTION__, "dx:", dx, "dy:", dy);
+    if(dy > 0) execute(SCROLL_UP, GLFW_PRESS, currentMods);
+    if(dy < 0) execute(SCROLL_DOWN, GLFW_PRESS, currentMods);
+}
+void keyCallback(int key, int action, int mods){
+    // if(debug) log(__FUNCTION__, "key:", key, "action:", action, "mods:", mods);
+    currentMods = mods;
+    execute(key, action, mods);
+}
+void mouseButtonCallback(int button, int action, int mods){
+    // if(debug) log(__FUNCTION__, "button:", button, "action:", action, "mods:", mods);
 
+    currentMods = mods;
+    switch(button){
+        case GLFW_MOUSE_BUTTON_LEFT: { button = LMB; break; }
+        case GLFW_MOUSE_BUTTON_RIGHT: { button = RMB; break; }
+        case GLFW_MOUSE_BUTTON_MIDDLE: { button = MMB; break; }
+    }
+    execute(button, action, mods);
+}
 struct InputEvent
 {
     std::string name;
     std::function<void(void)> func;
     void operator () (){
-        if(func) func();
+        if(func) {
+            log("function", name);
+            func();
+        }
     }
 };
 
@@ -193,15 +227,13 @@ public:
         return false;
     }
     std::string name;
+    bool active {false};
 private:
     std::map<u32, InputEvent> map;
 };
 
-std::deque<std::shared_ptr<InputHandlerContextBindingContainer>> stackOfContext;
+std::deque<Context*> stackOfContext;
 std::multimap<std::string, std::string> functionAndKeyBindings;
-/**
- *  Dobra, jesli każdy trzyma sobie ptr do kontekstu, nie potrzebujemy ogólnego kontenera na konteksty, jesli się aktywuje do dodaje się do stosu, tworzenie jest tanie, nie trzeba też rejestrować nowego :D
- */
 
 void forEachBinding(const std::string &functionName, std::function<void(const std::string&)> fun){
     auto keys = functionAndKeyBindings.equal_range(functionName);
@@ -212,24 +244,26 @@ void registerKeyCombination(const std::string &str){
     auto funcAndKeys = splitToFunctionAndKeys(str);
     functionAndKeyBindings.emplace(funcAndKeys.first, funcAndKeys.second);
 }
-void activate(std::shared_ptr<InputHandlerContextBindingContainer> context){
-    stackOfContext.push_front(std::move(context));
+void activate(Context* context){
+    stackOfContext.push_front(context);
 }
-void deactivate(const std::shared_ptr<InputHandlerContextBindingContainer>& context){
-    std::remove_if(std::begin(stackOfContext), std::end(stackOfContext), [&context](const std::shared_ptr<InputHandlerContextBindingContainer>& it){ return it==context; });
+void deactivate(Context* context){
+    std::remove_if(std::begin(stackOfContext), std::end(stackOfContext), [&context](const Context* it){ return it==context; });
 }
 
 void execute(int k, int a, int m){
-    for(auto it = stackOfContext.begin(); it != stackOfContext.end(); it++)
-        if((*it)->execute(k, a, m)) break;
+    for(auto it = stackOfContext.begin(); it != stackOfContext.end(); it++){
+        (*it)->contextImpl->execute(k, a, m);
+        if((*it)->consumeInput == CONSUME_ALL) break;
+    }
 }
 
-Context::Context(std::string contextName, ConsumeInput consumeInput) : contextName(contextName), consumeInput(consumeInput), contextPtr(std::make_shared<InputHandlerContextBindingContainer>(contextName)){
+Context::Context(std::string contextName, ConsumeInput consumeInput) : contextName(contextName), consumeInput(consumeInput), contextImpl(std::make_shared<InputHandlerContextBindingContainer>(contextName)){
 }
 Context::~Context(){
     deactivate();
 }
-void Context::setFunction(const std::string &functionName, Lambda onEnter, Lambda onExit){
+void Context::setBinding(const std::string &functionName, Lambda onEnter, Lambda onExit){
     InputHandler::forEachBinding(functionName, [&](const std::string &binding){
         setBinding(binding, functionName, onEnter, onExit);
     });
@@ -238,19 +272,22 @@ void Context::setBinding(const std::string &binding, const std::string &name, La
     auto keys = parseKeyBinding(binding);
     if(onEnter){
         // log(binding, keys.key, keys.action, keys.modifier);
-        contextPtr->emplace(keys.key, keys.action, keys.modifier, name, onEnter);
+        contextImpl->emplace(keys.key, keys.action, keys.modifier, name, onEnter);
     }
     keys.action = GLFW_RELEASE;
     if(onExit){
-        contextPtr->emplace(keys.key, keys.action, keys.modifier, name, onExit);
+        contextImpl->emplace(keys.key, keys.action, keys.modifier, name, onExit);
     }
 }
 
+void Context::execute(int k, int a, int m){
+    contextImpl->execute(k, a, m);
+}
 void Context::activate(){
-    InputHandler::activate(contextPtr);
+    InputHandler::activate(this);
 }
 void Context::deactivate(){
-    InputHandler::deactivate(contextPtr);
+    InputHandler::deactivate(this);
 }
 
 }
