@@ -1,6 +1,7 @@
 #pragma once
 #include <map>
 #include <deque>
+#include <memory>
 #include "Utils.hpp"
 #include "Timer.hpp"
 
@@ -15,6 +16,7 @@ const int HOLD_KEY = 666;
 
 namespace InputHandler
 {
+class InputHandlerContextBindingContainer;
 
 enum ConsumeInput
 {
@@ -37,6 +39,7 @@ public:
     void deactivate();
 private:
     std::string contextName;
+    std::shared_ptr<InputHandlerContextBindingContainer> contextPtr;
     ConsumeInput consumeInput;
 };
 

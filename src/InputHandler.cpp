@@ -197,21 +197,12 @@ private:
     std::map<u32, InputEvent> map;
 };
 
-std::deque<std::reference_wrapper<InputHandlerContextBindingContainer>> stackOfContext;
+std::deque<std::shared_ptr<InputHandlerContextBindingContainer>> stackOfContext;
 std::multimap<std::string, std::string> functionAndKeyBindings;
-std::map<std::string, InputHandlerContextBindingContainer> contexts;
+/**
+ *  Dobra, jesli każdy trzyma sobie ptr do kontekstu, nie potrzebujemy ogólnego kontenera na konteksty, jesli się aktywuje do dodaje się do stosu, tworzenie jest tanie, nie trzeba też rejestrować nowego :D
+ */
 
-bool registerNewContext(const std::string &contextName){
-    if(contexts.count(contextName)) return false;
-    contexts.emplace(contextName, InputHandlerContextBindingContainer(contextName));
-    return true;
-}
-void deleteContext(const std::string &contextName){
-    contexts.erase(contextName);
-}
-InputHandlerContextBindingContainer& getContext(const std::string &contextName){
-    return contexts.at(contextName);
-}
 void forEachBinding(const std::string &functionName, std::function<void(const std::string&)> fun){
     auto keys = functionAndKeyBindings.equal_range(functionName);
     for (auto it = keys.first; it != keys.second; ++it)
@@ -221,25 +212,22 @@ void registerKeyCombination(const std::string &str){
     auto funcAndKeys = splitToFunctionAndKeys(str);
     functionAndKeyBindings.emplace(funcAndKeys.first, funcAndKeys.second);
 }
-void activate(const std::string &contextName){
-    stackOfContext.push_front(contexts.at(contextName));
+void activate(std::shared_ptr<InputHandlerContextBindingContainer> context){
+    stackOfContext.push_front(std::move(context));
 }
-void deactivate(const std::string &contextName){
-    for(auto it = stackOfContext.begin(); it != stackOfContext.end(); it++)
-        if(it->get().name == contextName) stackOfContext.erase(it);
+void deactivate(const std::shared_ptr<InputHandlerContextBindingContainer>& context){
+    std::remove_if(std::begin(stackOfContext), std::end(stackOfContext), [&context](const std::shared_ptr<InputHandlerContextBindingContainer>& it){ return it==context; });
 }
 
 void execute(int k, int a, int m){
     for(auto it = stackOfContext.begin(); it != stackOfContext.end(); it++)
-        if(it->get().execute(k, a, m)) break;
+        if((*it)->execute(k, a, m)) break;
 }
 
-Context::Context(std::string contextName, ConsumeInput consumeInput) : contextName(contextName), consumeInput(consumeInput){
-    InputHandler::registerNewContext(contextName);
+Context::Context(std::string contextName, ConsumeInput consumeInput) : contextName(contextName), consumeInput(consumeInput), contextPtr(std::make_shared<InputHandlerContextBindingContainer>(contextName)){
 }
 Context::~Context(){
     deactivate();
-    InputHandler::deleteContext(contextName);
 }
 void Context::setFunction(const std::string &functionName, Lambda onEnter, Lambda onExit){
     InputHandler::forEachBinding(functionName, [&](const std::string &binding){
@@ -250,19 +238,19 @@ void Context::setBinding(const std::string &binding, const std::string &name, La
     auto keys = parseKeyBinding(binding);
     if(onEnter){
         // log(binding, keys.key, keys.action, keys.modifier);
-        InputHandler::getContext(contextName).emplace(keys.key, keys.action, keys.modifier, name, onEnter);
+        contextPtr->emplace(keys.key, keys.action, keys.modifier, name, onEnter);
     }
     keys.action = GLFW_RELEASE;
     if(onExit){
-        InputHandler::getContext(contextName).emplace(keys.key, keys.action, keys.modifier, name, onExit);
+        contextPtr->emplace(keys.key, keys.action, keys.modifier, name, onExit);
     }
 }
 
 void Context::activate(){
-    InputHandler::activate(contextName);
+    InputHandler::activate(contextPtr);
 }
 void Context::deactivate(){
-    InputHandler::deactivate(contextName);
+    InputHandler::deactivate(contextPtr);
 }
 
 }
