@@ -1,20 +1,24 @@
 #pragma once
-#include <map>
-#include <deque>
-#include <memory>
+#include "IContextImpl.hpp"
 #include "Utils.hpp"
 #include "Timer.hpp"
 
 namespace InputHandler
 {
-class InputHandlerContextBindingContainer;
-using Lambda = std::function<void(void)>;
+
+#define BIT(x) (1<<(x))
 
 enum ConsumeInput
 {
-    DEFAULT,
-    CONSUME_ALL,
-    PASS_ALL
+    DEFAULT = BIT(0),
+    CONSUME_ALL = BIT(1),
+    PASS_ALL = BIT(2),
+};
+
+enum ModificatorKeyPolicy
+{
+    INCLUDE_IN_MAPPING = BIT(5),
+    EXCLUDE_FROM_MAPPING = BIT(6),
 };
 
 void scrollCallback(double dx, double dy);
@@ -26,7 +30,8 @@ void registerKeyCombination(const std::string &str);
 class Context
 {
 public:
-    Context(std::string contextName, ConsumeInput consumeInput = DEFAULT);
+    Context(std::string contextName, std::vector<std::string>contextsToInheritFrom, int behavour = DEFAULT);
+    Context(std::string contextName, int behavour = DEFAULT);
     ~Context();
     void setBinding(const std::string &function, Lambda onEnter, Lambda onExit={});
     void setBinding(const std::string &function, const std::string &name, Lambda onEnter, Lambda onExit={});
@@ -34,8 +39,8 @@ public:
     void activate();
     void deactivate();
     std::string contextName;
-    std::shared_ptr<InputHandlerContextBindingContainer> contextImpl;
-    ConsumeInput consumeInput;
+    std::unique_ptr<IContextImpl> contextImpl;
+    int behavour;
 };
 
 }

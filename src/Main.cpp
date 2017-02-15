@@ -66,6 +66,22 @@ int main(){
      *  Parsowanie stringa zwraca trzy inty
      *
      */
+	/**
+	 * Inna wersja wynikła z przemysleń i zabawy z padem
+	 * Potrzebne sa przynajmniej trzy implementacje obsługi sterowania:
+	 * - zwykła, growa
+	 * - dla pada, inny input funkcji
+	 * - dla text inputu
+	 *
+	 * Chcę możliwośc podpinania wielu funkcji pod klawisz
+	 * Dziedziczenie kontekstów możliwe dzięki temu, lepsze to niż konsumpcja wejścia i przegladanie wszystkich kontekstow
+	 * Aktywne oknteksty lepiej trzymac w kolejce żeby można było wywalic te które zostana usuniete
+	 *
+	 * W przypadku braku klawisza z modyfikatorem wołamy wersję podstawowa, mozna dzięki temu celujac(na shift) chodzic i strzelac
+	 * na shift ustawiamy wtedy jakiegoś membera w klasie i tam gdzie potrzebujemy to sprawdzamy
+	 *
+	 * Plus jest taki ze będzie to też z padem działac :D
+ 	*/
     InputHandler::Context context("Main");
     context.setBinding("setOrigin", []{log("setOrigin");});
     context.setBinding("help", []{log("This is help");log("-------");});
