@@ -1,6 +1,8 @@
 #pragma once
 #include "IContextImpl.hpp"
 
+namespace InputHandler
+{
 class ContextImpl : public IContextImpl
 {
 public:
@@ -37,3 +39,4 @@ public:
 private:
     std::multimap<u32, InputEvent> map;
 };
+}
