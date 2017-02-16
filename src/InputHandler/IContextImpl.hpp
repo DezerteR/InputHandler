@@ -1,12 +1,18 @@
 #pragma once
 #include <functional>
-#include <map>
 #include <string>
 
 namespace InputHandler
 {
 
 using Lambda = std::function<void(void)>;
+
+struct KeyActionMode
+{
+    int key;
+    int action;
+    int modifier;
+};
 
 class IContextImpl
 {

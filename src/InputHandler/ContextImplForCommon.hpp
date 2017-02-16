@@ -1,5 +1,6 @@
 #pragma once
 #include "IContextImpl.hpp"
+#include <map>
 
 namespace InputHandler
 {
