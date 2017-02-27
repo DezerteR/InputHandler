@@ -23,6 +23,7 @@ DEP = $(OBJS:%.o=%.d)
 $(BIN)/$(TARGET_NAME): $(OBJS)
 	@echo "Linking: $@"
 	@$(CXX) $^ -o $@ $(LIBS)
+	@echo "Done"
 
 -include $(DEP)
 

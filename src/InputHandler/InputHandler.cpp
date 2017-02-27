@@ -1,8 +1,10 @@
 #include "InputHandler.hpp"
 #include "Logging.hpp"
 #include "StringToKeyMapping.hpp"
-#include "ContextImplForCommon.hpp"
+#include "StringToModMapping.hpp"
+#include "ContextImplForKeyboard.hpp"
 #include <deque>
+#include <list>
 #include <map>
 #include <memory>
 
@@ -127,7 +129,7 @@ KeyActionMode parseKeyBinding(const std::string &str){
 
 void forEachBinding(const std::string &functionName, std::function<void(const std::string&)> fun){
     auto keys = functionAndKeyBindings.equal_range(functionName);
-    for (auto it = keys.first; it != keys.second; ++it)
+    for(auto it = keys.first; it != keys.second; ++it)
         fun(it->second);
 }
 void registerKeyCombination(const std::string &str){
@@ -140,21 +142,45 @@ void activate(Context* context){
 void deactivate(Context* context){
     std::remove_if(std::begin(stackOfContext), std::end(stackOfContext), [&context](const Context* it){ return it==context; });
 }
-void execute(int k, int a, int m){
+void executeAction(int k, int a, int m){
     stackOfContext.front()->contextImpl->execute(k, a, m);
 }
 
-Context::Context(std::string contextName, std::vector<std::string>contextsToInheritFrom, int behavour) : contextName(contextName), behavour(behavour), contextImpl(std::make_unique<ContextImpl>(contextName)){}
+std::list<int> currentlyPressedKeys;
+int currentModifierKey;
+void execute(int k, int a, int m){
+    if(a != GLFW_PRESS and a != GLFW_RELEASE) return; /// GLFW_REPEAT is handled internally in funcion refresh as default behaviour for repeating keys sucks
+
+    if(a == GLFW_PRESS){
+        currentlyPressedKeys.push_back(k);
+    }
+    else if(a == GLFW_RELEASE){
+        currentlyPressedKeys.remove(k);
+    }
+
+    currentModifierKey = m;
+    executeAction(k, a, m);
+}
+
+void refresh(){
+    for(auto &it : currentlyPressedKeys){
+        executeAction(it, 2, currentModifierKey);
+    }
+}
+
+Context::Context(std::string contextName, std::vector<std::string>contextsToInheritFrom, int behavour) : contextName(contextName), behavour(behavour), contextImpl(std::make_unique<ContextImplForKeyboard>(contextName)){
+
+}
 Context::Context(std::string contextName, int behavour) : Context(contextName, {}, behavour) {}
 Context::~Context(){
     deactivate();
 }
-void Context::setBinding(const std::string &functionName, Lambda onEnter, Lambda onExit){
+void Context::setAction(const std::string &functionName, Lambda onEnter, Lambda onExit){
     forEachBinding(functionName, [&](const std::string &binding){
-        setBinding(binding, functionName, onEnter, onExit);
+        setAction(binding, functionName, onEnter, onExit);
     });
 }
-void Context::setBinding(const std::string &binding, const std::string &name, Lambda onEnter, Lambda onExit){
+void Context::setAction(const std::string &binding, const std::string &name, Lambda onEnter, Lambda onExit){
     auto keys = parseKeyBinding(binding);
     if(onEnter){
         // log(binding, keys.key, keys.action, keys.modifier);

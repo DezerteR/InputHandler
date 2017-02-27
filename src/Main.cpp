@@ -30,6 +30,7 @@ void loop(){
         glfwPollEvents();
 
         refresh();
+        InputHandler::refresh();
 
         glfwSwapBuffers(window);
     }
@@ -83,22 +84,26 @@ int main(){
 	 * Plus jest taki ze będzie to też z padem działac :D
  	*/
     InputHandler::Context context("Main");
-    context.setBinding("setOrigin", []{log("setOrigin");});
-    context.setBinding("help", []{log("This is help");log("-------");});
-    context.setBinding("stats", []{log("Score: 12300");});
-    context.setBinding("W", "forward", []{log("Start engine");}, []{log("Stop engine");});
-    context.setBinding("hold-W", "forward", []{log("brum-brum");});
-    context.setBinding("exit", []{std::cout<<"bye :D"; running = false;});
+    context.setAction("setOrigin", []{log("setOrigin");});
+    context.setAction("help", []{log("This is help");log("-------");});
+    context.setAction("stats", []{log("Score: 12300");});
+    context.setAction("exit", []{std::cout<<"bye :D"; running = false;});
     // context.emplacePressRepeatRelease("shift-c", []{}, []{}, []{});
     context.activate();
 
     std::string tab[4] = {"aa", "bb", "cc", "dd"};
     int it=0;
 
+    bool tankSpecialModifier(false);
     InputHandler::Context tankC("Tank");
-    tankC.setBinding("scrollUp", "1", [&it]{ it = (it+1)%4; });
-    tankC.setBinding("scrollDown", "2", [&it]{ it = (it-1)%4;if(it<0) it=4+it; });
-    tankC.setBinding("LMB", "fire",  [&it, &tab]{ log(tab[it]); });
+    tankC.setAction("exit", []{std::cout<<"bye :D"; running = false;});
+    tankC.setAction("scrollUp", "1", [&it]{ it = (it+1)%4; });
+    tankC.setAction("shift", "", [&tankSpecialModifier]{ tankSpecialModifier = true; log("Shift ON"); }, [&tankSpecialModifier]{ tankSpecialModifier = false; log("Shift OFF"); });
+    tankC.setAction("hold-W", "Go Forward", [&it, &tankSpecialModifier]{ 
+        if(tankSpecialModifier) log("5m/s");
+        else log("100m/s");
+     });
+    tankC.setAction("LMB", "fire",  [&it, &tab]{ log(tab[it]); });
     tankC.activate();
 
     loop();
