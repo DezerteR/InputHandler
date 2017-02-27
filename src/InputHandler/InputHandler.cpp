@@ -168,10 +168,10 @@ void refresh(){
     }
 }
 
-Context::Context(std::string contextName, std::vector<std::string>contextsToInheritFrom, int behavour) : contextName(contextName), behavour(behavour), contextImpl(std::make_unique<ContextImplForKeyboard>(contextName)){
+Context::Context(std::string contextName, std::vector<std::string>contextsToInheritFrom, int behaviour) : contextName(contextName), behaviour(behaviour), contextImpl(std::make_unique<ContextImplForKeyboard>(contextName)){
 
 }
-Context::Context(std::string contextName, int behavour) : Context(contextName, {}, behavour) {}
+Context::Context(std::string contextName, int behaviour) : Context(contextName, {}, behaviour) {}
 Context::~Context(){
     deactivate();
 }
