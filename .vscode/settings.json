@@ -1,3 +1,25 @@
 // Place your settings in this file to overwrite default and user settings.
 {
+    "files.associations": {
+        "*.ipp": "cpp",
+        "cfenv": "cpp",
+        "cinttypes": "cpp",
+        "cstdint": "cpp",
+        "initializer_list": "cpp",
+        "cctype": "cpp",
+        "clocale": "cpp",
+        "cmath": "cpp",
+        "csetjmp": "cpp",
+        "csignal": "cpp",
+        "cstdarg": "cpp",
+        "cstddef": "cpp",
+        "cstdio": "cpp",
+        "cstdlib": "cpp",
+        "cstring": "cpp",
+        "ctime": "cpp",
+        "cwchar": "cpp",
+        "cwctype": "cpp",
+        "rope": "cpp",
+        "slist": "cpp"
+    }
 }

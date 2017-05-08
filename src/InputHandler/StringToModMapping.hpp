@@ -1,4 +1,5 @@
 #pragma once
+#include <GLFW/glfw3.h>
 
 const std::map<std::string, int> stringToMod = {
     { "shift", GLFW_MOD_SHIFT },
