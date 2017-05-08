@@ -1,3 +1,4 @@
+#include <GLFW/glfw3.h>
 #include "InputHandler.hpp"
 #include "Logging.hpp"
 #include "StringToKeyMapping.hpp"
@@ -37,134 +38,131 @@ void mouseButtonCallback(int button, int action, int mods){
     execute(button, action, mods);
 }
 /// padCallback
+namespace utils
+{
+    Context* activeContext {nullptr};
+    std::multimap<std::string, std::string> functionAndKeyBindings;
+    std::list<int> currentlyPressedKeys;
+    int currentModifierKey;
 
-std::deque<Context*> stackOfContext;
-std::multimap<std::string, std::string> functionAndKeyBindings;
+    u32 hashInput(int k, int a, int m){
+        if(k > 256){
+            switch(k){
+                case GLFW_KEY_KP_ENTER: { k = GLFW_KEY_ENTER ; break; }
+                case GLFW_KEY_KP_DIVIDE : { k = '/'; break; }
+                case GLFW_KEY_KP_MULTIPLY: { k = '*'; break; }
+                case GLFW_KEY_KP_SUBTRACT : { k = '-'; break; }
+                case GLFW_KEY_KP_ADD : { k = '+'; break; }
+                case GLFW_KEY_KP_EQUAL : { k = '='; break; }
+                case GLFW_KEY_RIGHT_SHIFT : { k = GLFW_KEY_LEFT_SHIFT; break; }
+                case GLFW_KEY_RIGHT_CONTROL : { k = GLFW_KEY_LEFT_CONTROL; break; }
+                case GLFW_KEY_RIGHT_ALT : { k = GLFW_KEY_LEFT_ALT; break; }
+                case GLFW_KEY_RIGHT_SUPER : { k = GLFW_KEY_LEFT_SUPER; break; }
+                default:{
+                    if(k >= GLFW_KEY_KP_0 and k <= GLFW_KEY_KP_9) k -= GLFW_KEY_KP_0 + '0';
+                }
+            }
+            /// in case we want only shift pressed and behave as key not mod
+            if(k == GLFW_KEY_LEFT_SHIFT and m & GLFW_MOD_SHIFT) m = 0;
+            if(k == GLFW_KEY_LEFT_CONTROL and m & GLFW_MOD_CONTROL) m = 0;
+            if(k == GLFW_KEY_LEFT_ALT and m & GLFW_MOD_ALT) m = 0;
+            if(k == GLFW_KEY_LEFT_SUPER and m & GLFW_MOD_SUPER) m = 0;
+        }
 
-u32 hashInput(int k, int a, int m){
-    if(k > 256){
-        switch(k){
-            case GLFW_KEY_KP_ENTER: { k = GLFW_KEY_ENTER ; break; }
-            case GLFW_KEY_KP_DIVIDE : { k = '/'; break; }
-            case GLFW_KEY_KP_MULTIPLY: { k = '*'; break; }
-            case GLFW_KEY_KP_SUBTRACT : { k = '-'; break; }
-            case GLFW_KEY_KP_ADD : { k = '+'; break; }
-            case GLFW_KEY_KP_EQUAL : { k = '='; break; }
-            case GLFW_KEY_RIGHT_SHIFT : { k = GLFW_KEY_LEFT_SHIFT; break; }
-            case GLFW_KEY_RIGHT_CONTROL : { k = GLFW_KEY_LEFT_CONTROL; break; }
-            case GLFW_KEY_RIGHT_ALT : { k = GLFW_KEY_LEFT_ALT; break; }
-            case GLFW_KEY_RIGHT_SUPER : { k = GLFW_KEY_LEFT_SUPER; break; }
-            default:{
-                if(k >= GLFW_KEY_KP_0 and k <= GLFW_KEY_KP_9) k -= GLFW_KEY_KP_0 + '0';
+        /// m is 4bits, a is 2bits, k is at least 9bits
+        return u32( k<<6 | a <<4 | m );
+    }
+    u32 hashInput(KeyActionMode keys){
+        return hashInput(keys.key, keys.action, keys.modifier);
+    }
+    /// keys:function
+    std::pair<std::string, std::string> splitToFunctionAndKeys(const std::string &str){
+        // str.erase( remove(str.begin(), str.end(),' '), str.end() );
+        int a=0;
+        for(int i=0; i<str.size(); i++){
+            if(str[i] == ':'){
+                return std::make_pair(str.substr(i+1), str.substr(0, i));
             }
         }
-        /// in case we want only shift pressed and behave as key not mod
-        if(k == GLFW_KEY_LEFT_SHIFT and m & GLFW_MOD_SHIFT) m = 0;
-        if(k == GLFW_KEY_LEFT_CONTROL and m & GLFW_MOD_CONTROL) m = 0;
-        if(k == GLFW_KEY_LEFT_ALT and m & GLFW_MOD_ALT) m = 0;
-        if(k == GLFW_KEY_LEFT_SUPER and m & GLFW_MOD_SUPER) m = 0;
+        return {};
     }
+    std::vector<std::string> splitToKeys(std::string str){
+        if(str.size() == 1) return {str};
+        if(str.back() == '-') str.replace(str.size()-1, 1, "minus");
 
-    /// m is 4bits, a is 2bits, k is at least 9bits
-    return u32( k<<6 | a <<4 | m );
-}
-u32 hashInput(KeyActionMode keys){
-    return hashInput(keys.key, keys.action, keys.modifier);
-}
-/// keys:function
-std::pair<std::string, std::string> splitToFunctionAndKeys(const std::string &str){
-    // str.erase( remove(str.begin(), str.end(),' '), str.end() );
-    int a=0;
-    for(int i=0; i<str.size(); i++){
-        if(str[i] == ':'){
-            return std::make_pair(str.substr(i+1), str.substr(0, i));
+        int a=0;
+        std::vector<std::string> values;
+        for(int i=0; i<str.size(); i++){
+            if(str[i] == '-'){
+                values.push_back(str.substr(a, i-a));
+                a = i+1;
+            }
         }
+        values.push_back(str.substr(a));
+        return values;
     }
-    return {};
-}
-std::vector<std::string> splitToKeys(std::string str){
-    if(str.size() == 1) return {str};
-    if(str.back() == '-') str.replace(str.size()-1, 1, "minus");
+    KeyActionMode parseKeyBinding(const std::string &str){
+        KeyActionMode out {};
+        std::vector<std::string> values = splitToKeys(str);
+        // log(str);
+        // for(auto &it : values) log("\t", it);
+        if(values.front() == "hold"){
+            out.action = GLFW_REPEAT;
+            values = std::vector<std::string>(values.begin()+1, values.end());
+        }
+        else out.action = GLFW_PRESS;
 
-    int a=0;
-    std::vector<std::string> values;
-    for(int i=0; i<str.size(); i++){
-        if(str[i] == '-'){
-            values.push_back(str.substr(a, i-a));
-            a = i+1;
+        for(int i=0; i<values.size()-1; i++){
+            if(stringToMod.count(values[i])){
+                out.modifier |= stringToMod.at(values[i]);
+            }
+            else {
+                error("No modifier key:", values[i]);
+            }
         }
-    }
-    values.push_back(str.substr(a));
-    return values;
-}
-KeyActionMode parseKeyBinding(const std::string &str){
-    KeyActionMode out {};
-    std::vector<std::string> values = splitToKeys(str);
-    // log(str);
-    // for(auto &it : values) log("\t", it);
-    if(values.front() == "hold"){
-        out.action = GLFW_REPEAT;
-        values = std::vector<std::string>(values.begin()+1, values.end());
-    }
-    else out.action = GLFW_PRESS;
-
-    for(int i=0; i<values.size()-1; i++){
-        if(stringToMod.count(values[i])){
-            out.modifier |= stringToMod.at(values[i]);
-        }
+        if(stringToKey.count(values.back()))
+            out.key = stringToKey.at(values.back());
         else {
-            error("No modifier key:", values[i]);
+            out.key = int(values.back()[0]);
+            // log("[Warning] unknown key value:", values.back());
         }
+        if(out.key >= 'a' and out.key <= 'z') out.key -= 'a' - 'A';
+        // log("\t", out.key);
+        return out;
     }
-    if(stringToKey.count(values.back()))
-        out.key = stringToKey.at(values.back());
-    else {
-        out.key = int(values.back()[0]);
-        // log("[Warning] unknown key value:", values.back());
+    void forEachBinding(const std::string &functionName, std::function<void(const std::string&)> fun){
+        auto keys = functionAndKeyBindings.equal_range(functionName);
+        for(auto it = keys.first; it != keys.second; ++it)
+            fun(it->second);
     }
-    if(out.key >= 'a' and out.key <= 'z') out.key -= 'a' - 'A';
-    // log("\t", out.key);
-    return out;
+    void executeAction(int k, int a, int m){
+        activeContext->execute(k, a, m);
+    }
+
 }
 
-void forEachBinding(const std::string &functionName, std::function<void(const std::string&)> fun){
-    auto keys = functionAndKeyBindings.equal_range(functionName);
-    for(auto it = keys.first; it != keys.second; ++it)
-        fun(it->second);
-}
 void registerKeyCombination(const std::string &str){
-    auto funcAndKeys = splitToFunctionAndKeys(str);
-    functionAndKeyBindings.emplace(funcAndKeys.first, funcAndKeys.second);
+    auto funcAndKeys = utils::splitToFunctionAndKeys(str);
+    utils::functionAndKeyBindings.emplace(funcAndKeys.first, funcAndKeys.second);
 }
-void activate(Context* context){
-    stackOfContext.push_front(context);
-}
-void deactivate(Context* context){
-    std::remove_if(std::begin(stackOfContext), std::end(stackOfContext), [&context](const Context* it){ return it==context; });
-}
-void executeAction(int k, int a, int m){
-    stackOfContext.front()->contextImpl->execute(k, a, m);
-}
-
-std::list<int> currentlyPressedKeys;
-int currentModifierKey;
+/// no dobra, ale teraz mamy opóźnienie jednej klatki
 void execute(int k, int a, int m){
     if(a != GLFW_PRESS and a != GLFW_RELEASE) return; /// GLFW_REPEAT is handled internally in funcion refresh as default behaviour for repeating keys sucks
 
     if(a == GLFW_PRESS){
-        currentlyPressedKeys.push_back(k);
+        utils::currentlyPressedKeys.push_back(k);
     }
     else if(a == GLFW_RELEASE){
-        currentlyPressedKeys.remove(k);
+        utils::currentlyPressedKeys.remove(k);
     }
 
-    currentModifierKey = m;
-    executeAction(k, a, m);
+    utils::currentModifierKey = m;
+    utils::executeAction(k, a, m);
 }
 
 void refresh(){
-    for(auto &it : currentlyPressedKeys){
-        executeAction(it, 2, currentModifierKey);
+    for(auto &it : utils::currentlyPressedKeys){
+        utils::executeAction(it, 2, utils::currentModifierKey);
     }
 }
 
@@ -176,14 +174,13 @@ Context::~Context(){
     deactivate();
 }
 void Context::setAction(const std::string &functionName, Lambda onEnter, Lambda onExit){
-    forEachBinding(functionName, [&](const std::string &binding){
+    utils::forEachBinding(functionName, [&](const std::string &binding){
         setAction(binding, functionName, onEnter, onExit);
     });
 }
 void Context::setAction(const std::string &binding, const std::string &name, Lambda onEnter, Lambda onExit){
-    auto keys = parseKeyBinding(binding);
+    auto keys = utils::parseKeyBinding(binding);
     if(onEnter){
-        // log(binding, keys.key, keys.action, keys.modifier);
         contextImpl->emplace(keys.key, keys.action, keys.modifier, name, onEnter);
     }
     keys.action = GLFW_RELEASE;
@@ -194,12 +191,23 @@ void Context::setAction(const std::string &binding, const std::string &name, Lam
 
 void Context::execute(int k, int a, int m){
     contextImpl->execute(k, a, m);
+    if(parent) parent->execute(k, a, m);
 }
 void Context::activate(){
-    InputHandler::activate(this);
+    lastActive = utils::activeContext;
+    utils::activeContext = this;
 }
 void Context::deactivate(){
-    InputHandler::deactivate(this);
+    if(utils::activeContext == this) utils::activeContext = lastActive;
+}
+
+std::shared_ptr<Context> Context::derive(std::string contextName, int behaviour){
+    auto child = std::make_shared<Context>(contextName, behaviour);
+
+    child->parent = this;
+    children.push_back(child);
+
+    return child;
 }
 
 }

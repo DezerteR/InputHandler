@@ -17,7 +17,7 @@ struct Action
     std::function<void(void)> func;
     void operator () (){
         if(func) {
-            log("function", name);
+            // log("function", name);
             func();
         }
     }
@@ -29,11 +29,12 @@ struct KeyActionMode
     int action;
     int modifier;
 };
-
-KeyActionMode parseKeyBinding(const std::string &str);
-u32 hashInput(int k, int a, int m);
-u32 hashInput(KeyActionMode keys);
-
+namespace utils
+{
+    KeyActionMode parseKeyBinding(const std::string &str);
+    u32 hashInput(int k, int a, int m);
+    u32 hashInput(KeyActionMode keys);
+}
 
 class IContextImpl
 {

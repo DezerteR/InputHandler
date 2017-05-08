@@ -30,7 +30,6 @@ void loop(){
         glfwPollEvents();
 
         refresh();
-        InputHandler::refresh();
 
         glfwSwapBuffers(window);
     }
@@ -56,6 +55,8 @@ int main(){
     context.setAction("setOrigin", []{log("setOrigin");});
     context.setAction("help", []{log("This is help");log("-------");});
     context.setAction("stats", []{log("Score: 12300");});
+    context.setAction("W", "forward", []{log("Start engine");}, []{log("Stop engine");});
+    context.setAction("hold-W", "forward", []{log("brum-brum");});
     context.setAction("exit", []{std::cout<<"bye :D"; running = false;});
     // context.emplacePressRepeatRelease("shift-c", []{}, []{}, []{});
     context.activate();
@@ -63,20 +64,14 @@ int main(){
     std::string tab[4] = {"aa", "bb", "cc", "dd"};
     int it=0;
 
-    bool tankSpecialModifier(false);
-    InputHandler::Context tankC("Tank", "Main");
-    tankC.setAction("exit", []{std::cout<<"bye :D"; running = false;});
-    tankC.setAction("scrollUp", "1", [&it]{ it = (it+1)%4; });
-    tankC.setAction("shift", "", [&tankSpecialModifier]{ tankSpecialModifier = true; log("Shift ON"); }, [&tankSpecialModifier]{ tankSpecialModifier = false; log("Shift OFF"); });
-    tankC.setAction("hold-W", "Go Forward", [&it, &tankSpecialModifier]{ 
-        if(tankSpecialModifier) log("5m/s");
-        else log("100m/s");
-     });
-    tankC.setAction("LMB", "fire",  [&it, &tab]{ log(tab[it]); });
-    tankC.activate();
+    auto tankC = context.derive("Tank");
+    tankC->setAction("scrollUp", "1", [&it]{ it = (it+1)%4; });
+    tankC->setAction("scrollDown", "2", [&it]{ it = (it-1)%4;if(it<0) it=4+it; });
+    tankC->setAction("LMB", "fire",  [&it, &tab]{ log(tab[it]); });
+    tankC->activate();
 
     loop();
-    tankC.deactivate();
+    tankC->deactivate();
     context.deactivate();
 
     return 0;

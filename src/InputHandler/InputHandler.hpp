@@ -1,4 +1,5 @@
 #pragma once
+#include <memory>
 #include "Utils.hpp"
 #include "Timer.hpp"
 
@@ -34,17 +35,23 @@ class IContextImpl;
 class Context
 {
 public:
-    Context(std::string contextName, std::vector<std::string>contextsToInheritFrom, int behavour = DEFAULT);
-    Context(std::string contextName, int behavour = DEFAULT);
+    Context(std::string contextName, std::vector<std::string>contextsToInheritFrom, int behaviour = DEFAULT);
+    Context(std::string contextName, int behaviour = DEFAULT);
     ~Context();
     void setAction(const std::string &function, Lambda onEnter, Lambda onExit={});
     void setAction(const std::string &function, const std::string &name, Lambda onEnter, Lambda onExit={});
     void execute(int k, int a, int m);
     void activate();
     void deactivate();
+    std::shared_ptr<Context> derive(std::string contextName, int behaviour = DEFAULT);
     std::string contextName;
     std::unique_ptr<IContextImpl> contextImpl;
-    int behavour;
+    int behaviour;
+
+    Context* lastActive {nullptr};
+    Context* parent {nullptr};
+    std::vector<std::shared_ptr<Context>> children;
 };
+using ContextPtr = std::shared_ptr<Context>;
 
 }
