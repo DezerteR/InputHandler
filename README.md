@@ -7,7 +7,9 @@ In keybinding there should be:
 - modifier key if implementation allows
 - key
 
-For default implementation for keyboard there are no modifier keys, they should be handled by user via implementing custom action for pressing and releasing modifier key.
+#### How It works
+Handlers are organised in hierarhical way in a tree. With only one nodea active, event if not consumed is propagated to parent of node. 
+
 
 Also default behaviour for repeating keys is changed, now key is repeated imidiately and until release command. I found it especially useful for games.
 
@@ -19,7 +21,7 @@ Probably there is some magic to awoid this shit, but I am content with this now.
 
 ---
 
-At one moment there can be active nly one context, to awoid repeating actions, context can derive action from another. So there could be many actions under one key.
+
 
 #### Usage
 Keybindings are defined in contexts in which should be unique. Active context could consume all events, or only these that are defined.
