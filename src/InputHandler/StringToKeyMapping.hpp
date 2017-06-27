@@ -7,7 +7,11 @@ const int MMB = 502;
 const int RMB = 503;
 const int SCROLL_UP = 504;
 const int SCROLL_DOWN = 505;
+const int MousePosition = 507;
+const int MouseMove = 508;
 const int HOLD_KEY = 666;
+const int LT = 666;
+const int RT = 666;
 
 /// zrobic z tego tablicę
 const std::map<std::string, int> stringToKey = {
@@ -54,4 +58,8 @@ const std::map<std::string, int> stringToKey = {
     { "MMB", MMB},
     { "RMB", RMB},
     { "minus", int('-')},
+    { "LT", LT},
+    { "RT", RT},
+    { "MousePosition", MousePosition},
+    { "MouseMove", MouseMove},
 };

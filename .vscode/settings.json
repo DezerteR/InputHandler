@@ -1,4 +1,20 @@
 // Place your settings in this file to overwrite default and user settings.
 {
-     "editor.cursorStyle": "block"
+    "editor.cursorStyle": "block",
+    "files.associations": {
+        "*.ipp": "cpp",
+        "cctype": "cpp",
+        "clocale": "cpp",
+        "cmath": "cpp",
+        "csetjmp": "cpp",
+        "csignal": "cpp",
+        "cstdarg": "cpp",
+        "cstddef": "cpp",
+        "cstdio": "cpp",
+        "cstdlib": "cpp",
+        "cstring": "cpp",
+        "ctime": "cpp",
+        "cwchar": "cpp",
+        "cwctype": "cpp"
+    }
 }

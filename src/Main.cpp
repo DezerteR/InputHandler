@@ -1,21 +1,22 @@
 #include <map>
 #include <tuple>
-#include "Utils.hpp"
+#include "Includes.hpp"
 #include "Timer.hpp"
 #include "InputHandler.hpp"
+#include "InputContextHandler.hpp"
 
 bool debug = true;
 bool running = true;
 int currentMods;
 
 void scrollCallback(GLFWwindow *window, double dx, double dy){
-	InputHandler::scrollCallback(dx, dy);
+	// inputHandler.scrollCallback(dx, dy);
 }
 void keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods){
-	InputHandler::keyCallback(key, action, mods);
+	// inputHandler.keyCallback(key, action, mods);
 }
 void mouseButtonCallback(GLFWwindow *window, int button, int action, int mods){
-	InputHandler::mouseButtonCallback(button, action, mods);
+	// inputHandler.mouseButtonCallback(button, action, mods);
 }
 void exitCallback(GLFWwindow *window){
     running = false;
@@ -43,15 +44,16 @@ int main(){
     glfwSetMouseButtonCallback(window, mouseButtonCallback);
     glfwSetWindowCloseCallback(window, exitCallback);
 
-    InputHandler::registerKeyCombination("esc:exit");
-    InputHandler::registerKeyCombination("alt-f4:exit");
-    InputHandler::registerKeyCombination("f4:exit");
-    InputHandler::registerKeyCombination("f1:help");
-    InputHandler::registerKeyCombination("hold-shift:stats");
-    InputHandler::registerKeyCombination("shift-c:setOrigin");
-    InputHandler::registerKeyCombination("ctrl-c:setOrigin");
+    InputHandler inputHandler;
+    inputHandler.setBinding("esc:exit");
+    inputHandler.setBinding("alt-f4:exit");
+    inputHandler.setBinding("f4:exit");
+    inputHandler.setBinding("f1:help");
+    inputHandler.setBinding("hold-shift:stats");
+    inputHandler.setBinding("shift-c:setOrigin");
+    inputHandler.setBinding("ctrl-c:setOrigin");
 
-    InputHandler::Context context("Main");
+    InputContextHandler context(inputHandler);
     context.setAction("setOrigin", []{log("setOrigin");});
     context.setAction("help", []{log("This is help");log("-------");});
     context.setAction("stats", []{log("Score: 12300");});
@@ -64,7 +66,7 @@ int main(){
     std::string tab[4] = {"aa", "bb", "cc", "dd"};
     int it=0;
 
-    auto tankC = context.derive("Tank");
+    auto tankC = context.derive();
     tankC->setAction("scrollUp", "1", [&it]{ it = (it+1)%4; });
     tankC->setAction("scrollDown", "2", [&it]{ it = (it-1)%4;if(it<0) it=4+it; });
     tankC->setAction("LMB", "fire",  [&it, &tab]{ log(tab[it]); });
@@ -73,6 +75,14 @@ int main(){
     loop();
     tankC->deactivate();
     context.deactivate();
+    /*
+        Obsługa ruchu myszy i pada:
+        input->keyboard.setAction();
+        input->mouse.setAction("movement", [this]{});
+        input->mouse.setAction("position", [this]{});
+        input->pad.setAction("", [this]{});
+
+    */
 
     return 0;
 }

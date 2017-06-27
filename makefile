@@ -33,7 +33,7 @@ $(OBJ_DIR)/%.o : %.cpp
 	@$(CXX) $(CXX_FLAGS) $(ADDITIONAL_FLAGS) -MMD -c $< -o $@
 
 clean:
-	rm -rf $(OBJ_DIR)/*.o $(OBJ_DIR)/*.d
+	rm -rf $(OBJ_DIR)
 	rm $(BIN)/$(TARGET_NAME).exe
 
 run: $(BIN)/$(TARGET_NAME)
