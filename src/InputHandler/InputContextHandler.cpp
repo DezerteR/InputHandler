@@ -7,19 +7,21 @@ bool InputContextHandler::execute(int k, int a, int m){
     auto range = actions.equal_range(hashInput(k, a, m)); /// first with mod keys
     if(range.second == range.first) range = actions.equal_range(hashInput(k, a, 0)); /// because sometimes mod key can be pressed unintentionally
     bool anyExecuted = false;
-    for (auto it = range.first; it != range.second; ++it){
+    for(auto it = range.first; it != range.second; ++it){
         it->second();
         anyExecuted = true;
     }
+    if(parent) parent->execute(k, a, m);
     return anyExecuted;
 }
 bool InputContextHandler::execute(int arg, float x, float y){
     auto range = actions2f.equal_range(arg);
     bool anyExecuted = false;
-    for (auto it = range.first; it != range.second; ++it){
+    for(auto it = range.first; it != range.second; ++it){
         it->second(x, y);
         anyExecuted = true;
     }
+    if(parent) parent->execute(arg, x, y);
     return anyExecuted;
 }
 
@@ -53,8 +55,8 @@ void InputContextHandler::activate(){
 void InputContextHandler::deactivate(){
     if(inputHandler.active == this) inputHandler.active = lastActive;
 }
-std::shared_ptr<InputContextHandler> InputContextHandler::derive(){
-    auto child = std::make_shared<InputContextHandler>(inputHandler);
+std::shared_ptr<InputContextHandler> InputContextHandler::derive(const std::string& newName){
+    auto child = std::make_shared<InputContextHandler>(inputHandler, newName);
 
     child->parent = this;
     children.push_back(child);

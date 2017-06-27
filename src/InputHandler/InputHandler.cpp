@@ -25,7 +25,7 @@ void InputHandler::setBinding(const std::string& combination){
 
 void InputHandler::refresh(){
     for(auto &it : currentlyPressedKeys){
-        active->execute(it, 2, currentModifierKey);
+        active->execute(it, GLFW_REPEAT, currentModifierKey);
     }
 }
 void InputHandler::scrollCallback(double dx, double dy){

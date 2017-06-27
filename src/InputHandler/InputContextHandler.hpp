@@ -38,8 +38,9 @@ private:
     InputContextHandler* lastActive {nullptr};
     InputContextHandler* parent {nullptr};
     std::vector<std::shared_ptr<InputContextHandler>> children;
+    std::string name;
 public:
-    InputContextHandler(InputHandler& inputHandler) : inputHandler(inputHandler){}
+    InputContextHandler(InputHandler& inputHandler, std::string name="") : inputHandler(inputHandler), name(name){}
     bool execute(int k, int a, int m);
     bool execute(int arg, float x, float y);
     void setAction(const std::string &actionName, Lambda onEnter, Lambda onExit={});
@@ -47,5 +48,10 @@ public:
     void setAction(const std::string &binding, const std::string &name, Lambda2F function);
     void activate();
     void deactivate();
-    std::shared_ptr<InputContextHandler> derive();
+    std::shared_ptr<InputContextHandler> derive(const std::string& newName);
+    InputHandler& getHandler(){
+        return inputHandler;
+    }
 };
+
+using InputContextPtr = std::shared_ptr<InputContextHandler>;

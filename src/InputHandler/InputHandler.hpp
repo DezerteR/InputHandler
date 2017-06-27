@@ -13,7 +13,6 @@ private:
     std::list<int> currentlyPressedKeys;
     int currentModifierKey;
 
-    void execute(int k, int a, int m);
 
 public:
     std::shared_ptr<InputContextHandler> root;
@@ -25,6 +24,7 @@ public:
         return configuredActions.equal_range(function);
     }
 
+    void execute(int k, int a, int m);
     void refresh();
     void scrollCallback(double dx, double dy);
     void keyCallback(int key, int action, int mods);

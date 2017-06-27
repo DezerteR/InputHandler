@@ -76,7 +76,7 @@ KeyActionMode parseKeyBinding(const std::string &str){
             out.modifier |= stringToMod.at(values[i]);
         }
         else {
-            error("No modifier key:", values[i]);
+            // error("No modifier key:", values[i]);
         }
     }
     if(stringToKey.count(values.back()))
